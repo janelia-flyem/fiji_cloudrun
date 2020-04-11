@@ -1,0 +1,6 @@
+{
+	"command": " --headless --ij2 --console --run demo.py 'name=\"test\"'",
+	"input-str": {
+		"demo.py": "#@String name\nprint('Hello ' + name)\n"
+	}
+} 
