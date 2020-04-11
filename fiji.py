@@ -13,7 +13,7 @@ Note: should only handle one request at a time.
 
 import os
 
-from flask import Flask, Response, request, make_response
+from flask import Flask, Response, request, make_response, abort
 from flask_cors import CORS
 import json
 import logging
@@ -80,6 +80,17 @@ def run_fiji():
     """
 
     try:
+        """
+        # extract jwt token
+        auth = request.headers.get('authorization')
+        if auth is None or auth == "":
+            return abort(401)
+        authlist = auth.split(' ')
+        if len(authlist) != 2:
+            return abort(401) # Bearer must be specified
+        auth = authlist[1]
+        """
+
         # launch fork with for user
         uid = pwd.getpwnam('fiji')[2]
         input_file  = request.get_json()
@@ -94,19 +105,23 @@ def run_fiji():
             try:
                 os.setuid(uid)
                 os.system("python process_request.py")
+                #os.system(f"GOOGLE_TOKEN={auth} python process_request.py")
             finally:
                 os._exit(0)
         os.waitpid(pid, 0)
 
-        if os.path.exists("/tmp/fiji.err"):
-            fin = open("/tmp/fiji.err")
+        if os.path.exists(FIJIERR):
+            fin = open(FIJIERR)
             fiji_resp = fin.read()
             return Response(fiji_resp, 400)
 
         # read results and send
-        fin = open("/tmp/fiji.out")
-        fiji_resp = fin.read()
-      
+        if os.path.exists(FIJIOUT):
+            fin = open(FIJIOUT)
+            fiji_resp = fin.read()
+        else:
+            fiji_resp = ""
+
         # remove temporary files
         cleanup_temp_files()
 

@@ -27,8 +27,26 @@ try:
         bashrc = fin.read()
     config = json.load(open(CONFIGFILE))
    
-    # ?! read from cloud
-    
+    # read from cloud (only gbucket for now)
+    if "input-map" in config:
+        for fname, cloud_src in config["input-map"].items():
+            if not cloud_src.startswith("gs://"):
+                raise RuntimeError("only supports cloud sources with gs:// prefix")
+            
+            # read from google bucket gs://[bucket name]/[path + file name]
+            from google.cloud import storage
+            bucket_file = cloud_src[5:]
+            bucket_file_arr = bucket_file.split('/')
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(bucket_file_arr[0])
+            file_loc = "/".join(bucket_file_arr[1:])
+            blob1 = bucket.blob(file_loc)
+            
+            # write file
+            if os.path.dirname(fname) != "":
+                os.makedirs(os.path.dirname(fname), exist_ok=True)
+            blob1.download_to_filename(fname)
+
     # load any embedded scripts
     if "input-str" in config:
         for fname, value in config["input-str"].items():
