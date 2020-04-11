@@ -57,9 +57,27 @@ try:
                 fout.write(value)
 
     # run command
-    res = os.system("ImageJ-linux64 " + config["command"] + f" > {FIJIOUT} 2> {FIJIERR}")
+    res = os.system("(ImageJ-linux64 " + config["command"] + f") > {FIJIOUT} 2> {FIJIERR}")
     
-    # ?! write from cloud
+    # write to the cloud (only gbucket for now)
+    if "output-map" in config:
+        for fname, cloud_src in config["output-map"].items():
+            # only write file if it exists
+            if os.path.exists(fname):
+                if not cloud_src.startswith("gs://"):
+                    raise RuntimeError("only supports cloud sources with gs:// prefix")
+                
+                # read from google bucket gs://[bucket name]/[path + file name]
+                from google.cloud import storage
+                bucket_file = cloud_src[5:]
+                bucket_file_arr = bucket_file.split('/')
+                storage_client = storage.Client()
+                bucket = storage_client.bucket(bucket_file_arr[0])
+                file_loc = "/".join(bucket_file_arr[1:])
+                blob1 = bucket.blob(file_loc)
+            
+                # write file to cloud
+                blob1.upload_from_file(open(fname))
 
     # delete everything that might have been modified
     os.system("rm -rf .* * 2> /dev/null")
@@ -78,8 +96,9 @@ try:
         os.system(f"rm -rf {FIJIERR}")
 
 except Exception as e:
+    # overwrite error output if there is an actual python exception
     # ensure fiji.err file exists
-    if not os.path.exists(FIJIERR):
-        os.system(f"echo \"{str(e)}\" > {FIJIERR}")
+    # if not os.path.exists(FIJIERR):
+    os.system(f"echo \"{str(e)}\" > {FIJIERR}")
     exit(1)
 
