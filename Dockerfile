@@ -52,4 +52,4 @@ RUN mkdir /opt/fiji_run && chown fiji:fiji /opt/fiji_run
 COPY fiji.py /opt/fiji/ 
 COPY process_request.py /opt/fiji/ 
 WORKDIR /opt/fiji
-CMD exec ${FLYEM_ENV}/bin/gunicorn --bind :$PORT --workers 1 --threads 1 fiji:app 
+CMD exec ${FLYEM_ENV}/bin/gunicorn --bind :$PORT --workers 1 --threads 1 fiji:app --timeout 900
