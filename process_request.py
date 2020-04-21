@@ -10,6 +10,7 @@ as well as the working directory.
 
 import json
 import os
+import io
 
 # file i/o constants
 RUNDIR = "/opt/fiji_run"
@@ -35,17 +36,38 @@ try:
             
             # read from google bucket gs://[bucket name]/[path + file name]
             from google.cloud import storage
+            storage_client = storage.Client()
+            
+
             bucket_file = cloud_src[5:]
             bucket_file_arr = bucket_file.split('/')
-            storage_client = storage.Client()
+            
             bucket = storage_client.bucket(bucket_file_arr[0])
             file_loc = "/".join(bucket_file_arr[1:])
-            blob1 = bucket.blob(file_loc)
             
-            # write file
+            # make sure directory exists
             if os.path.dirname(fname) != "":
                 os.makedirs(os.path.dirname(fname), exist_ok=True)
-            blob1.download_to_filename(fname)
+            
+            # check if there is a downsampling option
+            file_loc_split = file_loc.split("?downsample=")
+            file_loc = file_loc_split[0]
+            blob1 = bucket.blob(file_loc)
+            
+            if len(file_loc_split) > 1:
+                factor = int(file_loc_split[1])
+                # downsample and write file
+                from PIL import Image
+                # set max to 1 billion
+                Image.MAX_IMAGE_PIXELS=1000000000
+
+                image_bin = blob1.download_as_string()
+                im = Image.open(io.BytesIO(image_bin))
+                im = im.resize((im.width//factor, im.height//factor), resample=Image.BICUBIC)
+                im.save(fname)
+            else:
+                # write file
+                blob1.download_to_filename(fname)
 
     # load any embedded scripts
     if "input-str" in config:

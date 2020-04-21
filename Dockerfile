@@ -29,7 +29,7 @@ ENV FLYEM_ENV /opt/conda/envs/flyem
 ENV PATH /opt/conda/bin:${PATH}                                   
 
 # Install packages                                                                                                    
-RUN conda create -n flyem python=3.7 flask flask-cors gunicorn google-cloud-storage 
+RUN conda create -n flyem python=3.7 flask flask-cors gunicorn google-cloud-storage pillow 
 
 # Ensure that flyem/bin is on the PATH                                                                                
 ENV PATH ${FLYEM_ENV}/bin:${PATH}                                   
